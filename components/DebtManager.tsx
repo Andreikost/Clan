@@ -1,15 +1,17 @@
 
 import React, { useState } from 'react';
-import { Liability, CurrencyCode } from '../types';
-import { ShieldAlert, TrendingDown, CheckCircle2, Percent, Edit2, Trash2, X, Save, Settings2, Globe } from 'lucide-react';
+import { Liability, CurrencyCode, FamilyMember } from '../types';
+import { ShieldAlert, TrendingDown, CheckCircle2, Percent, Edit2, Trash2, X, Save, Settings2, Globe, User } from 'lucide-react';
 
 interface Props {
   liabilities: Liability[];
+  users: FamilyMember[];
+  isFamilyView: boolean;
   onUpdateLiability: (l: Liability) => void;
   onDeleteLiability: (id: string) => void;
 }
 
-const DebtManager: React.FC<Props> = ({ liabilities, onUpdateLiability, onDeleteLiability }) => {
+const DebtManager: React.FC<Props> = ({ liabilities, users, isFamilyView, onUpdateLiability, onDeleteLiability }) => {
   const [strategy, setStrategy] = useState<'snowball' | 'avalanche'>('snowball');
   const [editingId, setEditingId] = useState<string | null>(null);
   
@@ -22,18 +24,16 @@ const DebtManager: React.FC<Props> = ({ liabilities, onUpdateLiability, onDelete
       currency: 'COP' as CurrencyCode
   });
 
-  // Simple sum doesn't work well with mixed currencies without context, 
-  // but for the strategy list, we show original currency.
-  // Totals here are just for visual aggregation, ideally we convert them.
-  // For now, we will just list them.
-
   // Sort Logic
   const sortedLiabilities = [...liabilities].sort((a, b) => {
-      // Note: This sort is imperfect if currencies differ significantly, 
-      // but acceptable for a simple view. Ideally convert to base before sorting.
       if (strategy === 'snowball') return a.totalOwed - b.totalOwed; 
       return b.interestRate - a.interestRate;
   });
+
+  const getOwnerName = (id?: string) => {
+    if (!id) return '';
+    return users.find(u => u.id === id)?.name || '';
+  };
 
   const handleEditClick = (l: Liability) => {
       setEditingId(l.id);
@@ -88,7 +88,7 @@ const DebtManager: React.FC<Props> = ({ liabilities, onUpdateLiability, onDelete
                     <ShieldAlert className="w-6 h-6 text-rose-400" />
                 </div>
                 <div>
-                    <h2 className="text-xl font-bold text-white">Gestión de Deuda</h2>
+                    <h2 className="text-xl font-bold text-white">Gestión de Deuda {isFamilyView && '(Vista Familiar)'}</h2>
                     <p className="text-xs text-slate-400">Configura y elimina tus pasivos</p>
                 </div>
             </div>
@@ -111,8 +111,6 @@ const DebtManager: React.FC<Props> = ({ liabilities, onUpdateLiability, onDelete
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-            {/* Note: Aggregate totals removed or need conversion to be accurate. 
-                Showing active debts count is safe. */}
             <div className="bg-slate-900/50 p-4 rounded-xl border border-slate-700">
                 <p className="text-slate-400 text-xs uppercase tracking-wider">Deudas Activas</p>
                 <p className="text-2xl font-bold text-slate-200">{liabilities.length}</p>
@@ -211,25 +209,30 @@ const DebtManager: React.FC<Props> = ({ liabilities, onUpdateLiability, onDelete
                             <div className="flex-1 w-full">
                                 <div className="flex justify-between items-start">
                                     <h4 className="font-bold text-slate-200 text-lg">{debt.name}</h4>
-                                    <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                        <button 
-                                            onClick={() => handleEditClick(debt)}
-                                            className="p-1.5 text-indigo-400 hover:bg-indigo-500/20 rounded-lg transition-colors" title="Editar"
-                                        >
-                                            <Edit2 className="w-4 h-4" />
-                                        </button>
-                                        <button 
-                                            onClick={() => onDeleteLiability(debt.id)}
-                                            className="p-1.5 text-rose-400 hover:bg-rose-500/20 rounded-lg transition-colors" title="Eliminar"
-                                        >
-                                            <Trash2 className="w-4 h-4" />
-                                        </button>
-                                    </div>
+                                    {!isFamilyView && (
+                                        <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                            <button 
+                                                onClick={() => handleEditClick(debt)}
+                                                className="p-1.5 text-indigo-400 hover:bg-indigo-500/20 rounded-lg transition-colors" title="Editar"
+                                            >
+                                                <Edit2 className="w-4 h-4" />
+                                            </button>
+                                            <button 
+                                                onClick={() => onDeleteLiability(debt.id)}
+                                                className="p-1.5 text-rose-400 hover:bg-rose-500/20 rounded-lg transition-colors" title="Eliminar"
+                                            >
+                                                <Trash2 className="w-4 h-4" />
+                                            </button>
+                                        </div>
+                                    )}
                                 </div>
                                 <div className="flex gap-3 mt-1 items-center">
                                     <span className="text-xs text-slate-400 bg-slate-900 px-2 py-1 rounded border border-slate-700">{debt.type}</span>
                                     <span className="text-xs text-rose-400 flex items-center gap-1 font-mono"><Percent className="w-3 h-3" /> {debt.interestRate}% Anual</span>
                                     <span className="text-xs text-slate-400 flex items-center gap-1 bg-slate-800 px-2 rounded"><Globe className="w-3 h-3"/> {debt.currency}</span>
+                                    {isFamilyView && debt.ownerId && (
+                                        <span className="text-xs text-indigo-300 flex items-center gap-1 bg-indigo-900/20 px-2 rounded border border-indigo-500/30"><User className="w-3 h-3"/> {getOwnerName(debt.ownerId)}</span>
+                                    )}
                                 </div>
                             </div>
                             
@@ -251,18 +254,6 @@ const DebtManager: React.FC<Props> = ({ liabilities, onUpdateLiability, onDelete
                 );
             })}
         </div>
-      </div>
-      
-      <div className="bg-indigo-900/20 border border-indigo-500/30 p-4 rounded-xl flex gap-3 items-start">
-         <div className="p-2 bg-indigo-500/20 rounded-full mt-1">
-             <TrendingDown className="w-4 h-4 text-indigo-400" />
-         </div>
-         <div>
-             <h4 className="text-indigo-300 font-bold text-sm">Consejo de Padre Rico</h4>
-             <p className="text-xs text-indigo-200/80 mt-1">
-                 "No uses la deuda para comprar pasivos (cosas que pierden valor). Usa la deuda buena para adquirir activos que paguen esa misma deuda."
-             </p>
-         </div>
       </div>
     </div>
   );

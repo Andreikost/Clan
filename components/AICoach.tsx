@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
 import { FinancialState } from '../types';
-import { getFinancialAdvice } from '../services/geminiService';
+import { getFinancialAdvice, FinancialContext } from '../services/geminiService';
 import { Bot, Send, Loader2, Sparkles } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 
 interface Props {
-  state: FinancialState;
+  state: FinancialContext;
 }
 
 const AICoach: React.FC<Props> = ({ state }) => {

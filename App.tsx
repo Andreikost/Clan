@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { JarType, FinancialState, FamilyMember, Transaction, MonthlyStats, Jar, Asset, Liability, CurrencyCode } from './types';
+import { JarType, FinancialState, FamilyMember, Transaction, MonthlyStats, Jar, Asset, Liability, CurrencyCode, UserFinancials } from './types';
 import JarsDisplay from './components/JarsDisplay';
 import BalanceSheet from './components/BalanceSheet';
 import FinancialCharts from './components/FinancialCharts';
@@ -8,24 +8,31 @@ import AICoach from './components/AICoach';
 import DebtManager from './components/DebtManager';
 import JarConfigModal from './components/JarConfigModal';
 import JarDetailModal from './components/JarDetailModal';
-import { PieChart, LayoutDashboard, PlusCircle, LogOut, Wallet, TrendingDown, TrendingUp, AlertCircle, ArrowRight, X, Save, Calculator, Globe, RefreshCcw, Check, Settings } from 'lucide-react';
+import { PieChart, LayoutDashboard, PlusCircle, LogOut, Wallet, TrendingDown, TrendingUp, AlertCircle, ArrowRight, X, Save, Calculator, Globe, RefreshCcw, Check, Settings, Users, User, Lock } from 'lucide-react';
 
 // --- INITIAL MOCK DATA ---
-const INITIAL_JARS = {
+const INITIAL_JARS_ROBERTO = {
   [JarType.NEC]: { id: JarType.NEC, name: "Necesidades", description: "Gastos básicos de vida", percentage: 55, balance: 10000000, color: "bg-blue-600" },
-  [JarType.LIB]: { id: JarType.LIB, name: "Libertad Financiera (FFA)", description: "La gallina de los huevos de oro. ¡Nunca gastar!", percentage: 10, balance: 48000000, color: "bg-emerald-500" },
-  [JarType.ALP]: { id: JarType.ALP, name: "Ahorro Largo Plazo", description: "Gastos grandes futuros", percentage: 10, balance: 6000000, color: "bg-cyan-600" },
-  [JarType.EDU]: { id: JarType.EDU, name: "Educación", description: "Crecimiento personal y cursos", percentage: 10, balance: 1600000, color: "bg-violet-600" },
-  [JarType.JUE]: { id: JarType.JUE, name: "Juego", description: "Disfrutar sin culpa. Gastar todo a fin de mes.", percentage: 10, balance: 1200000, color: "bg-pink-500" },
-  [JarType.DAR]: { id: JarType.DAR, name: "Dar", description: "Donaciones y caridad", percentage: 5, balance: 600000, color: "bg-amber-500" },
+  [JarType.LIB]: { id: JarType.LIB, name: "Libertad Financiera", description: "Inversiones", percentage: 10, balance: 48000000, color: "bg-emerald-500" },
+  [JarType.ALP]: { id: JarType.ALP, name: "Ahorro Largo Plazo", description: "Futuro", percentage: 10, balance: 6000000, color: "bg-cyan-600" },
+  [JarType.EDU]: { id: JarType.EDU, name: "Educación", description: "Cursos", percentage: 10, balance: 1600000, color: "bg-violet-600" },
+  [JarType.JUE]: { id: JarType.JUE, name: "Juego", description: "Ocio", percentage: 10, balance: 1200000, color: "bg-pink-500" },
+  [JarType.DAR]: { id: JarType.DAR, name: "Dar", description: "Caridad", percentage: 5, balance: 600000, color: "bg-amber-500" },
 };
 
-const INITIAL_USER: FamilyMember = {
-  id: '1',
-  name: 'Roberto',
-  role: 'Admin',
-  avatar: 'https://picsum.photos/200'
+const INITIAL_JARS_MARIA = {
+    [JarType.NEC]: { id: JarType.NEC, name: "Necesidades", description: "Gastos del Hogar", percentage: 55, balance: 5000000, color: "bg-blue-600" },
+    [JarType.LIB]: { id: JarType.LIB, name: "Libertad Financiera", description: "Fondo de Inversión", percentage: 10, balance: 12000000, color: "bg-emerald-500" },
+    [JarType.ALP]: { id: JarType.ALP, name: "Ahorro Largo Plazo", description: "Viaje Europa", percentage: 10, balance: 3000000, color: "bg-cyan-600" },
+    [JarType.EDU]: { id: JarType.EDU, name: "Educación", description: "Libros", percentage: 10, balance: 800000, color: "bg-violet-600" },
+    [JarType.JUE]: { id: JarType.JUE, name: "Juego", description: "Salidas", percentage: 10, balance: 400000, color: "bg-pink-500" },
+    [JarType.DAR]: { id: JarType.DAR, name: "Dar", description: "Iglesia", percentage: 5, balance: 200000, color: "bg-amber-500" },
 };
+
+const USERS: FamilyMember[] = [
+    { id: '1', name: 'Roberto', role: 'Admin', avatar: 'https://picsum.photos/seed/rob/200' },
+    { id: '2', name: 'Maria', role: 'Admin', avatar: 'https://picsum.photos/seed/mar/200' },
+];
 
 const INITIAL_STATS: MonthlyStats[] = [
     { month: 'Ene', income: 16000000, expenses: 14000000, netWorth: 112000000 },
@@ -42,28 +49,42 @@ const INITIAL_DESCRIPTIONS = [
 
 const INITIAL_STATE: FinancialState = {
   baseCurrency: 'COP',
-  exchangeRates: {
-      'USD': 4000,
-      'EUR': 4300,
-      'COP': 1
-  },
-  jars: INITIAL_JARS,
-  assets: [
-    { id: '1', name: 'Apartamento Renta', value: 600000000, currency: 'COP', monthlyCashflow: 3200000, type: 'RealEstate' },
-    { id: '2', name: 'Portafolio Dividendos', value: 10000, currency: 'USD', monthlyCashflow: 40, type: 'Stock' }
-  ],
-  liabilities: [
-    { id: '1', name: 'Hipoteca Casa', totalOwed: 480000000, currency: 'COP', monthlyPayment: 3600000, type: 'Mortgage', interestRate: 12.5 },
-    { id: '2', name: 'Préstamo Auto', totalOwed: 6000, currency: 'USD', monthlyPayment: 150, type: 'Car', interestRate: 7.2 }
-  ],
-  transactions: [],
-  currentUser: INITIAL_USER,
-  monthlyStats: INITIAL_STATS,
-  savedDescriptions: INITIAL_DESCRIPTIONS
+  exchangeRates: { 'USD': 4000, 'EUR': 4300, 'COP': 1 },
+  users: USERS,
+  savedDescriptions: INITIAL_DESCRIPTIONS,
+  userData: {
+      '1': {
+          jars: INITIAL_JARS_ROBERTO,
+          assets: [
+            { id: '1', ownerId: '1', name: 'Apartamento Renta', value: 600000000, currency: 'COP', monthlyCashflow: 3200000, type: 'RealEstate' },
+            { id: '2', ownerId: '1', name: 'Portafolio Dividendos', value: 10000, currency: 'USD', monthlyCashflow: 40, type: 'Stock' }
+          ],
+          liabilities: [
+            { id: '1', ownerId: '1', name: 'Hipoteca Casa', totalOwed: 480000000, currency: 'COP', monthlyPayment: 3600000, type: 'Mortgage', interestRate: 12.5 },
+            { id: '2', ownerId: '1', name: 'Préstamo Auto', totalOwed: 6000, currency: 'USD', monthlyPayment: 150, type: 'Car', interestRate: 7.2 }
+          ],
+          transactions: [],
+          monthlyStats: INITIAL_STATS
+      },
+      '2': {
+          jars: INITIAL_JARS_MARIA,
+          assets: [
+              { id: '3', ownerId: '2', name: 'CDT Banco', value: 20000000, currency: 'COP', monthlyCashflow: 200000, type: 'Paper' }
+          ],
+          liabilities: [
+              { id: '3', ownerId: '2', name: 'Tarjeta Crédito', totalOwed: 5000000, currency: 'COP', monthlyPayment: 300000, type: 'CreditCard', interestRate: 24.5 }
+          ],
+          transactions: [],
+          monthlyStats: INITIAL_STATS.map(s => ({ ...s, income: s.income * 0.6, netWorth: s.netWorth * 0.3 })) // Mock diff stats
+      }
+  }
 };
 
 const App: React.FC = () => {
   const [state, setState] = useState<FinancialState>(INITIAL_STATE);
+  const [currentUserId, setCurrentUserId] = useState<string>('1');
+  const [viewMode, setViewMode] = useState<'INDIVIDUAL' | 'FAMILY'>('INDIVIDUAL');
+
   const [activeTab, setActiveTab] = useState<'dashboard' | 'add' | 'debt'>('dashboard');
   const [transactionType, setTransactionType] = useState<'INCOME' | 'EXPENSE'>('INCOME');
   const [isLogin, setIsLogin] = useState(true);
@@ -88,52 +109,84 @@ const App: React.FC = () => {
   const [showLiabilityModal, setShowLiabilityModal] = useState(false);
   const [showJarConfigModal, setShowJarConfigModal] = useState(false);
   
-  // -- NEW STATE FOR JAR DETAILS --
   const [selectedJarDetail, setSelectedJarDetail] = useState<Jar | null>(null);
   
   // New Item State
   const [newItemName, setNewItemName] = useState('');
-  const [newItemValue, setNewItemValue] = useState(''); // Value or Total Owed
-  const [newItemCashflow, setNewItemCashflow] = useState(''); // Cashflow or Payment
+  const [newItemValue, setNewItemValue] = useState(''); 
+  const [newItemCashflow, setNewItemCashflow] = useState(''); 
   const [newItemType, setNewItemType] = useState<string>('');
   const [newItemInterest, setNewItemInterest] = useState('');
   const [newItemCurrency, setNewItemCurrency] = useState<CurrencyCode>('COP');
 
-  // Exchange Rate / Global Config UI State
   const [editingRates, setEditingRates] = useState(false);
   const [tempUSDRate, setTempUSDRate] = useState(state.exchangeRates['USD'].toString());
   const [tempEURRate, setTempEURRate] = useState(state.exchangeRates['EUR'].toString());
   const [tempBaseCurrency, setTempBaseCurrency] = useState<CurrencyCode>(state.baseCurrency);
 
+  const currentUserProfile = state.users.find(u => u.id === currentUserId) || state.users[0];
+  const currentUserData = state.userData[currentUserId];
+
   // --- HELPERS ---
   const convertToBase = (amt: number, fromCurrency: CurrencyCode): number => {
       if (fromCurrency === state.baseCurrency) return amt;
-      
-      // We assume exchangeRates are stored relative to COP (as anchor) or we handle logic here
-      // For this app: exchangeRates = { USD: 4000, EUR: 4300, COP: 1 } (Meaning 1 Unit = X COP)
-      
-      // 1. Convert to Anchor (COP)
       let valInAnchor = amt;
       if (fromCurrency !== 'COP') {
           valInAnchor = amt * (state.exchangeRates[fromCurrency] || 1);
       }
-
-      // 2. Convert Anchor to Target Base
       if (state.baseCurrency === 'COP') return valInAnchor;
-      
-      // If base is USD, we need (COP Value) / (USD Rate)
       return valInAnchor / (state.exchangeRates[state.baseCurrency] || 1);
   };
 
+  // --- AGGREGATION LOGIC ---
+  const getDisplayedState = (): UserFinancials => {
+      if (viewMode === 'INDIVIDUAL') {
+          return currentUserData;
+      }
+
+      // Family Aggregation
+      const jarKeys = Object.keys(currentUserData.jars) as JarType[];
+      const aggregatedJars: Record<JarType, Jar> = JSON.parse(JSON.stringify(currentUserData.jars)); // Clone structure
+      
+      // Reset Balances
+      jarKeys.forEach(key => aggregatedJars[key].balance = 0);
+
+      const allAssets: Asset[] = [];
+      const allLiabilities: Liability[] = [];
+      const allTransactions: Transaction[] = [];
+
+      Object.values(state.userData).forEach((uData: UserFinancials) => {
+          // Sum Jars
+          jarKeys.forEach(key => {
+             aggregatedJars[key].balance += uData.jars[key].balance;
+          });
+          allAssets.push(...uData.assets);
+          allLiabilities.push(...uData.liabilities);
+          allTransactions.push(...uData.transactions);
+      });
+
+      // Stats aggregation (simplified: just taking current user stats for charts trend, but summing last net worth)
+      // For a real app, we'd need to merge monthly history. 
+      const aggStats = [...currentUserData.monthlyStats]; 
+
+      return {
+          jars: aggregatedJars,
+          assets: allAssets,
+          liabilities: allLiabilities,
+          transactions: allTransactions,
+          monthlyStats: aggStats
+      };
+  };
+
+  const displayedData = getDisplayedState();
+
   // Derived Calculations for Charts
-  const currentMonthTransactions = state.transactions.filter(t => true); // Mock filtering
+  const currentMonthTransactions = displayedData.transactions; 
 
   const incomeByJar = currentMonthTransactions
     .filter(t => t.type === 'INCOME')
     .reduce((acc, t) => {
-         // Convert transaction amount to base currency before aggregating
          const amtInBase = convertToBase(t.amount, t.currency);
-         
          if(t.type === 'INCOME') {
              acc[JarType.NEC] = (acc[JarType.NEC] || 0) + amtInBase * 0.55;
              acc[JarType.LIB] = (acc[JarType.LIB] || 0) + amtInBase * 0.10;
@@ -149,7 +202,6 @@ const App: React.FC = () => {
     .filter(t => t.type === 'EXPENSE')
     .reduce((acc, t) => {
         if (t.jarId) {
-            // Convert to base currency
             const amtInBase = convertToBase(t.amount, t.currency);
             acc[t.jarId] = (acc[t.jarId] || 0) + amtInBase;
         }
@@ -185,26 +237,22 @@ const App: React.FC = () => {
       return ((val / total) * 100).toFixed(1);
   };
 
-  // Actions
+  // Actions - ALWAYS AFFECT CURRENT USER ONLY
   const handleAddIncome = () => {
+    if (viewMode === 'FAMILY') return; // Safety
+
     const totalAmt = parseFloat(amount);
     if (!totalAmt || totalAmt <= 0) return;
     
-    // IMPORTANT: Convert to Base Currency for Jars Balance
-    // NOTE: This actually converts to the *Jars Storage Currency* which we usually keep aligned with Base,
-    // but to avoid complexity we will assume Jars store raw value or Base value. 
-    // In this app, Jars are displayed in Base Currency, so we add the converted amount.
     const totalAmtInBase = convertToBase(totalAmt, currency);
 
-    const newJars = { ...state.jars };
+    const newJars = { ...currentUserData.jars };
     let distribution: Record<JarType, number>;
 
     if (isManualDistribution) {
-        // Manual dist assumes distribution amounts are in the INPUT currency
-        // Need to sum them up, verify against totalAmt, then convert each to base
         const manualTotal = (Object.values(manualDist) as string[]).reduce((sum, val) => sum + (parseFloat(val) || 0), 0);
         if (Math.abs(manualTotal - totalAmt) > 1) { 
-            alert(`La distribución (${manualTotal.toFixed(2)}) no coincide con el monto total (${totalAmt}). Diferencia: ${(totalAmt - manualTotal).toFixed(2)}`);
+            alert(`La distribución no coincide con el total.`);
             return;
         }
         distribution = {
@@ -216,14 +264,13 @@ const App: React.FC = () => {
             [JarType.DAR]: convertToBase(parseFloat(manualDist[JarType.DAR]) || 0, currency),
         };
     } else {
-        // Use current configured percentages on the Base Amount
         distribution = {
-            [JarType.NEC]: totalAmtInBase * (state.jars[JarType.NEC].percentage / 100),
-            [JarType.LIB]: totalAmtInBase * (state.jars[JarType.LIB].percentage / 100),
-            [JarType.ALP]: totalAmtInBase * (state.jars[JarType.ALP].percentage / 100),
-            [JarType.EDU]: totalAmtInBase * (state.jars[JarType.EDU].percentage / 100),
-            [JarType.JUE]: totalAmtInBase * (state.jars[JarType.JUE].percentage / 100),
-            [JarType.DAR]: totalAmtInBase * (state.jars[JarType.DAR].percentage / 100),
+            [JarType.NEC]: totalAmtInBase * (currentUserData.jars[JarType.NEC].percentage / 100),
+            [JarType.LIB]: totalAmtInBase * (currentUserData.jars[JarType.LIB].percentage / 100),
+            [JarType.ALP]: totalAmtInBase * (currentUserData.jars[JarType.ALP].percentage / 100),
+            [JarType.EDU]: totalAmtInBase * (currentUserData.jars[JarType.EDU].percentage / 100),
+            [JarType.JUE]: totalAmtInBase * (currentUserData.jars[JarType.JUE].percentage / 100),
+            [JarType.DAR]: totalAmtInBase * (currentUserData.jars[JarType.DAR].percentage / 100),
         };
     }
 
@@ -241,17 +288,16 @@ const App: React.FC = () => {
       isPassive: false 
     };
 
-    updateStateWithTransaction(newJars, newTransaction);
+    updateUserState(newJars, newTransaction);
   };
 
   const handleAddExpense = () => {
+    if (viewMode === 'FAMILY') return; // Safety
     const amt = parseFloat(amount);
     if (!amt || amt <= 0) return;
 
-    // Convert to base to check balance
     const amtInBase = convertToBase(amt, currency);
-
-    const newJars = { ...state.jars };
+    const newJars = { ...currentUserData.jars };
     
     if (newJars[selectedJar].balance < amtInBase) {
         if (!window.confirm("Advertencia: El saldo de este jarrón será negativo. ¿Continuar?")) return;
@@ -269,35 +315,39 @@ const App: React.FC = () => {
       isPassive: false
     };
 
-    updateStateWithTransaction(newJars, newTransaction);
+    updateUserState(newJars, newTransaction);
   };
 
-  const updateStateWithTransaction = (newJars: Record<JarType, any>, newTx: Transaction) => {
-      // Save description if new
+  const updateUserState = (newJars: Record<JarType, Jar>, newTx: Transaction) => {
       let newDescriptions = [...state.savedDescriptions];
       if (transactionDesc && !newDescriptions.includes(transactionDesc)) {
           newDescriptions.push(transactionDesc);
       }
 
-      // Update Net Worth stats logic (Mockup: just adding to last month)
-      const currentNetWorth = state.monthlyStats[state.monthlyStats.length - 1].netWorth;
+      // Update current user data
+      const newStats = [...currentUserData.monthlyStats];
+      const lastIdx = newStats.length - 1;
       const netChangeBase = newTx.type === 'INCOME' ? convertToBase(newTx.amount, newTx.currency) : -convertToBase(newTx.amount, newTx.currency);
       
-      const newStats = [...state.monthlyStats];
-      const lastIdx = newStats.length - 1;
       newStats[lastIdx] = {
           ...newStats[lastIdx],
-          netWorth: currentNetWorth + netChangeBase,
+          netWorth: newStats[lastIdx].netWorth + netChangeBase,
           income: newTx.type === 'INCOME' ? newStats[lastIdx].income + convertToBase(newTx.amount, newTx.currency) : newStats[lastIdx].income,
           expenses: newTx.type === 'EXPENSE' ? newStats[lastIdx].expenses + convertToBase(newTx.amount, newTx.currency) : newStats[lastIdx].expenses
       };
 
       setState(prev => ({
         ...prev,
-        jars: newJars,
-        transactions: [newTx, ...prev.transactions],
-        monthlyStats: newStats,
-        savedDescriptions: newDescriptions
+        savedDescriptions: newDescriptions,
+        userData: {
+            ...prev.userData,
+            [currentUserId]: {
+                ...prev.userData[currentUserId],
+                jars: newJars,
+                transactions: [newTx, ...prev.userData[currentUserId].transactions],
+                monthlyStats: newStats
+            }
+        }
       }));
       
       resetForm();
@@ -316,24 +366,38 @@ const App: React.FC = () => {
 
   // --- ASSET / LIABILITY LOGIC ---
   const handleSaveAsset = () => {
+      if(viewMode === 'FAMILY') return;
       if(!newItemName || !newItemValue) return;
       const newAsset: Asset = {
           id: Date.now().toString(),
+          ownerId: currentUserId,
           name: newItemName,
           value: parseFloat(newItemValue),
           currency: newItemCurrency,
           monthlyCashflow: parseFloat(newItemCashflow) || 0,
           type: (newItemType as any) || 'Paper'
       };
-      setState(prev => ({ ...prev, assets: [...prev.assets, newAsset] }));
+      
+      setState(prev => ({
+          ...prev,
+          userData: {
+              ...prev.userData,
+              [currentUserId]: {
+                  ...prev.userData[currentUserId],
+                  assets: [...prev.userData[currentUserId].assets, newAsset]
+              }
+          }
+      }));
       setShowAssetModal(false);
       resetItemForm();
   };
 
   const handleSaveLiability = () => {
+      if(viewMode === 'FAMILY') return;
       if(!newItemName || !newItemValue) return;
       const newLiab: Liability = {
           id: Date.now().toString(),
+          ownerId: currentUserId,
           name: newItemName,
           totalOwed: parseFloat(newItemValue),
           currency: newItemCurrency,
@@ -341,15 +405,31 @@ const App: React.FC = () => {
           interestRate: parseFloat(newItemInterest) || 0,
           type: (newItemType as any) || 'Loan'
       };
-      setState(prev => ({ ...prev, liabilities: [...prev.liabilities, newLiab] }));
+      setState(prev => ({
+          ...prev,
+          userData: {
+              ...prev.userData,
+              [currentUserId]: {
+                  ...prev.userData[currentUserId],
+                  liabilities: [...prev.userData[currentUserId].liabilities, newLiab]
+              }
+          }
+      }));
       setShowLiabilityModal(false);
       resetItemForm();
   };
   
   const handleUpdateLiability = (updated: Liability) => {
+      if(viewMode === 'FAMILY') return;
       setState(prev => ({
           ...prev,
-          liabilities: prev.liabilities.map(l => l.id === updated.id ? updated : l)
+          userData: {
+              ...prev.userData,
+              [currentUserId]: {
+                  ...prev.userData[currentUserId],
+                  liabilities: prev.userData[currentUserId].liabilities.map(l => l.id === updated.id ? updated : l)
+              }
+          }
       }));
   };
 
@@ -358,35 +438,9 @@ const App: React.FC = () => {
       const eurRate = parseFloat(tempEURRate);
       
       if(usdRate > 0 && eurRate > 0) {
-          // If we are changing the base currency, we might want to adjust Jar Balances strictly speaking,
-          // but for this MVP we assume Jar Balances are stored as "units of value" that get rendered.
-          // However, since we stored balances as numbers without currency ref, they are implicitly in Base Currency.
-          // Ideally, we would convert the stored balances to the NEW Base Currency.
-          
-          let newJars = { ...state.jars };
-          if (tempBaseCurrency !== state.baseCurrency) {
-              // Convert jar balances from OLD Base to NEW Base
-              // 1. Old Base -> Anchor (COP) -> New Base
-              const convertBalance = (val: number) => {
-                  let valInAnchor = val;
-                  if (state.baseCurrency !== 'COP') {
-                      valInAnchor = val * (state.exchangeRates[state.baseCurrency] || 1);
-                  }
-                  if (tempBaseCurrency === 'COP') return valInAnchor;
-                  // Anchor -> New Base (e.g. COP -> USD, divide by 4000)
-                  const rate = tempBaseCurrency === 'USD' ? usdRate : eurRate;
-                  return valInAnchor / rate;
-              };
-
-              (Object.keys(newJars) as JarType[]).forEach(k => {
-                  newJars[k].balance = convertBalance(newJars[k].balance);
-              });
-          }
-
           setState(prev => ({
               ...prev,
               baseCurrency: tempBaseCurrency,
-              jars: newJars,
               exchangeRates: { 
                   ...prev.exchangeRates, 
                   'USD': usdRate,
@@ -398,19 +452,49 @@ const App: React.FC = () => {
   };
 
   const deleteAsset = (id: string) => {
+      if(viewMode === 'FAMILY') return;
       if(window.confirm("¿Eliminar este activo?")) {
-        setState(prev => ({ ...prev, assets: prev.assets.filter(a => a.id !== id) }));
+        setState(prev => ({
+            ...prev,
+            userData: {
+                ...prev.userData,
+                [currentUserId]: {
+                    ...prev.userData[currentUserId],
+                    assets: prev.userData[currentUserId].assets.filter(a => a.id !== id)
+                }
+            }
+        }));
       }
   }
 
   const deleteLiability = (id: string) => {
+      if(viewMode === 'FAMILY') return;
       if(window.confirm("¿Eliminar este pasivo?")) {
-        setState(prev => ({ ...prev, liabilities: prev.liabilities.filter(l => l.id !== id) }));
+        setState(prev => ({
+            ...prev,
+            userData: {
+                ...prev.userData,
+                [currentUserId]: {
+                    ...prev.userData[currentUserId],
+                    liabilities: prev.userData[currentUserId].liabilities.filter(l => l.id !== id)
+                }
+            }
+        }));
       }
   }
   
   const handleSaveJarConfig = (updatedJars: Record<JarType, Jar>) => {
-      setState(prev => ({ ...prev, jars: updatedJars }));
+      if(viewMode === 'FAMILY') return;
+      setState(prev => ({
+          ...prev,
+          userData: {
+              ...prev.userData,
+              [currentUserId]: {
+                  ...prev.userData[currentUserId],
+                  jars: updatedJars
+              }
+          }
+      }));
   };
 
   const resetItemForm = () => {
@@ -426,39 +510,84 @@ const App: React.FC = () => {
             <PieChart className="w-8 h-8 text-white" />
           </div>
           <h2 className="text-3xl font-bold text-white tracking-tight">Mente Maestra<br/><span className="text-emerald-400">Financiera</span></h2>
-          <p className="text-slate-400">Gestiona tu riqueza familiar con los principios de los millonarios.</p>
+          <p className="text-slate-400">Selecciona el perfil para ingresar.</p>
           <div className="space-y-4 pt-4">
-             <div onClick={() => setIsLogin(false)} className="group cursor-pointer p-4 rounded-xl bg-slate-800 border border-slate-700 hover:border-emerald-500 transition-all flex items-center gap-4">
-                <img src="https://picsum.photos/200" alt="User" className="w-12 h-12 rounded-full border-2 border-emerald-500" />
-                <div className="text-left">
-                  <h3 className="text-white font-semibold group-hover:text-emerald-400 transition-colors">Familia Rodríguez</h3>
-                  <p className="text-xs text-slate-500">Último acceso: Hoy</p>
+             {state.users.map(user => (
+                 <div 
+                    key={user.id} 
+                    onClick={() => { setCurrentUserId(user.id); setIsLogin(false); }} 
+                    className="group cursor-pointer p-4 rounded-xl bg-slate-800 border border-slate-700 hover:border-emerald-500 transition-all flex items-center gap-4"
+                 >
+                    <img src={user.avatar} alt="User" className="w-12 h-12 rounded-full border-2 border-emerald-500" />
+                    <div className="text-left">
+                    <h3 className="text-white font-semibold group-hover:text-emerald-400 transition-colors">{user.name}</h3>
+                    <p className="text-xs text-slate-500">{user.role}</p>
+                    </div>
                 </div>
-             </div>
+             ))}
           </div>
         </div>
       </div>
     );
   }
 
+  // --- RENDER ---
+  const isFamily = viewMode === 'FAMILY';
+
   return (
     <div className="min-h-screen bg-slate-950 text-slate-200 font-sans selection:bg-emerald-500/30">
       
-      {/* Sidebar / Navigation */}
+      {/* Sidebar */}
       <nav className="fixed bottom-0 w-full z-40 md:w-64 md:h-screen md:top-0 md:left-0 bg-slate-900 border-t md:border-t-0 md:border-r border-slate-800 flex md:flex-col justify-around md:justify-start md:p-6 shadow-2xl">
-        <div className="hidden md:flex items-center gap-3 mb-10 px-2">
+        <div className="hidden md:flex items-center gap-3 mb-8 px-2">
            <div className="w-8 h-8 bg-emerald-500 rounded-lg flex items-center justify-center">
              <PieChart className="w-5 h-5 text-white" />
            </div>
            <span className="font-bold text-lg text-white">Mente Maestra</span>
         </div>
 
+        {/* User Switcher Widget */}
+        <div className="hidden md:block mb-6 bg-slate-950/50 p-3 rounded-xl border border-slate-800">
+             <label className="text-[10px] uppercase text-slate-500 font-bold mb-2 block tracking-wider">Perfil Activo</label>
+             <div className="flex items-center gap-2 mb-3">
+                 <img src={currentUserProfile.avatar} className="w-8 h-8 rounded-full border border-slate-600" />
+                 <select 
+                    value={currentUserId} 
+                    onChange={(e) => setCurrentUserId(e.target.value)}
+                    className="bg-transparent text-white font-semibold text-sm outline-none w-full"
+                 >
+                     {state.users.map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
+                 </select>
+             </div>
+             
+             {/* View Mode Toggle */}
+             <div className="flex bg-slate-800 rounded-lg p-1 border border-slate-700">
+                 <button 
+                    onClick={() => setViewMode('INDIVIDUAL')}
+                    className={`flex-1 py-1.5 text-xs rounded transition-all flex items-center justify-center gap-1 ${!isFamily ? 'bg-indigo-600 text-white shadow' : 'text-slate-400'}`}
+                 >
+                     <User className="w-3 h-3" /> Yo
+                 </button>
+                 <button 
+                    onClick={() => setViewMode('FAMILY')}
+                    className={`flex-1 py-1.5 text-xs rounded transition-all flex items-center justify-center gap-1 ${isFamily ? 'bg-purple-600 text-white shadow' : 'text-slate-400'}`}
+                 >
+                     <Users className="w-3 h-3" /> Familia
+                 </button>
+             </div>
+        </div>
+
         <button onClick={() => setActiveTab('dashboard')} className={`p-4 md:px-4 md:py-3 rounded-xl flex items-center gap-3 transition-all ${activeTab === 'dashboard' ? 'text-emerald-400 bg-emerald-500/10' : 'text-slate-400 hover:text-white hover:bg-slate-800'}`}>
-          <LayoutDashboard className="w-6 h-6" /> <span className="hidden md:inline font-medium">Panel Principal</span>
+          <LayoutDashboard className="w-6 h-6" /> <span className="hidden md:inline font-medium">Panel {isFamily ? 'Familiar' : 'Principal'}</span>
         </button>
 
-        <button onClick={() => setActiveTab('add')} className={`p-4 md:px-4 md:py-3 rounded-xl flex items-center gap-3 transition-all ${activeTab === 'add' ? 'text-emerald-400 bg-emerald-500/10' : 'text-slate-400 hover:text-white hover:bg-slate-800'}`}>
-          <Wallet className="w-6 h-6" /> <span className="hidden md:inline font-medium">Transacciones</span>
+        <button 
+            disabled={isFamily}
+            onClick={() => setActiveTab('add')} 
+            className={`p-4 md:px-4 md:py-3 rounded-xl flex items-center gap-3 transition-all ${activeTab === 'add' ? 'text-emerald-400 bg-emerald-500/10' : 'text-slate-400 hover:text-white hover:bg-slate-800'} ${isFamily ? 'opacity-50 cursor-not-allowed' : ''}`}
+        >
+          {isFamily ? <Lock className="w-6 h-6" /> : <Wallet className="w-6 h-6" />} 
+          <span className="hidden md:inline font-medium">Transacciones</span>
         </button>
         
         <button onClick={() => setActiveTab('debt')} className={`p-4 md:px-4 md:py-3 rounded-xl flex items-center gap-3 transition-all ${activeTab === 'debt' ? 'text-emerald-400 bg-emerald-500/10' : 'text-slate-400 hover:text-white hover:bg-slate-800'}`}>
@@ -535,18 +664,9 @@ const App: React.FC = () => {
               )}
           </div>
 
-          <div className="p-4 rounded-2xl bg-slate-800 border border-slate-700 mb-4">
-             <div className="flex items-center gap-3 mb-2">
-               <img src={state.currentUser.avatar} className="w-8 h-8 rounded-full" />
-               <div className="overflow-hidden">
-                 <p className="text-sm font-semibold text-white truncate">{state.currentUser.name}</p>
-                 <p className="text-xs text-slate-500">{state.currentUser.role}</p>
-               </div>
-             </div>
-             <button onClick={() => setIsLogin(true)} className="w-full mt-2 py-1.5 px-3 rounded-lg bg-slate-900 text-xs text-slate-400 hover:text-white transition-colors flex items-center justify-center gap-2">
-                <LogOut className="w-3 h-3" /> Cerrar Sesión
-             </button>
-          </div>
+          <button onClick={() => setIsLogin(true)} className="w-full py-2 rounded-lg bg-slate-800 border border-slate-700 text-xs text-slate-400 hover:text-white transition-colors flex items-center justify-center gap-2">
+              <LogOut className="w-3 h-3" /> Salir
+          </button>
         </div>
       </nav>
 
@@ -556,14 +676,24 @@ const App: React.FC = () => {
         {/* Header Mobile */}
         <div className="md:hidden flex justify-between items-center mb-6">
           <h1 className="text-xl font-bold text-white">Mente Maestra</h1>
-          <img src={state.currentUser.avatar} className="w-8 h-8 rounded-full border border-slate-600" onClick={() => setIsLogin(true)} />
+          <img src={currentUserProfile.avatar} className="w-8 h-8 rounded-full border border-slate-600" onClick={() => setIsLogin(true)} />
         </div>
 
         {activeTab === 'dashboard' && (
           <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+            {isFamily && (
+                <div className="bg-purple-900/20 border border-purple-500/30 p-4 rounded-xl mb-6 flex items-center gap-3">
+                    <div className="p-2 bg-purple-500/20 rounded-full"><Users className="w-5 h-5 text-purple-400" /></div>
+                    <div>
+                        <h3 className="text-purple-300 font-bold text-sm">Modo Familiar Activo</h3>
+                        <p className="text-xs text-purple-200/60">Viendo la suma de todos los perfiles. La edición está deshabilitada en esta vista.</p>
+                    </div>
+                </div>
+            )}
+
             <div className="mb-8 flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
                 <div>
-                  <h1 className="text-3xl font-bold text-white mb-2">Resumen Financiero</h1>
+                  <h1 className="text-3xl font-bold text-white mb-2">Resumen {isFamily ? 'Familiar' : 'Financiero'}</h1>
                   <p className="text-slate-400">"Tus ingresos solo pueden crecer hasta donde crezcas tú."</p>
                 </div>
                 
@@ -576,13 +706,15 @@ const App: React.FC = () => {
                 </div>
             </div>
 
-            <FinancialCharts jars={state.jars} stats={state.monthlyStats} expensesByJar={expensesByJar} incomeByJar={incomeByJar} />
+            <FinancialCharts jars={displayedData.jars} stats={displayedData.monthlyStats} expensesByJar={expensesByJar} incomeByJar={incomeByJar} />
 
             <BalanceSheet 
-                assets={state.assets} 
-                liabilities={state.liabilities}
+                assets={displayedData.assets} 
+                liabilities={displayedData.liabilities}
                 baseCurrency={state.baseCurrency}
                 exchangeRates={state.exchangeRates}
+                isFamilyView={isFamily}
+                users={state.users}
                 onAddAsset={() => { setShowAssetModal(true); setNewItemType('Stock'); }}
                 onAddLiability={() => { setShowLiabilityModal(true); setNewItemType('CreditCard'); }}
                 onDeleteAsset={deleteAsset}
@@ -590,7 +722,7 @@ const App: React.FC = () => {
             />
             
             <JarsDisplay 
-              jars={state.jars} 
+              jars={displayedData.jars} 
               onConfig={() => setShowJarConfigModal(true)} 
               onJarClick={(jar) => setSelectedJarDetail(jar)} 
             />
@@ -602,7 +734,9 @@ const App: React.FC = () => {
              <div className="animate-in fade-in duration-500">
                 <h1 className="text-3xl font-bold text-white mb-6">Salir de la "Carrera de la Rata"</h1>
                 <DebtManager 
-                    liabilities={state.liabilities} 
+                    liabilities={displayedData.liabilities} 
+                    users={state.users}
+                    isFamilyView={isFamily}
                     onUpdateLiability={handleUpdateLiability}
                     onDeleteLiability={deleteLiability}
                 />
@@ -633,12 +767,12 @@ const App: React.FC = () => {
                   {transactionType === 'INCOME' ? (
                       <>
                         <div className="p-2 bg-emerald-500/20 text-emerald-500 rounded-lg"><PlusCircle className="w-6 h-6" /></div>
-                        Registrar Ingreso
+                        Registrar Ingreso ({currentUserProfile.name})
                       </>
                   ) : (
                       <>
                         <div className="p-2 bg-rose-500/20 text-rose-500 rounded-lg"><TrendingDown className="w-6 h-6" /></div>
-                        Registrar Gasto
+                        Registrar Gasto ({currentUserProfile.name})
                       </>
                   )}
                 </h2>
@@ -710,12 +844,12 @@ const App: React.FC = () => {
 
                         {!isManualDistribution ? (
                              <div className="grid grid-cols-2 md:grid-cols-3 gap-3 text-xs">
-                                <div className="flex justify-between p-2 bg-blue-900/20 rounded border border-blue-900/30 text-blue-300"><span>{state.jars[JarType.NEC].name} ({state.jars[JarType.NEC].percentage}%)</span><span>${amount ? (parseFloat(amount)*(state.jars[JarType.NEC].percentage/100)).toFixed(2) : 0}</span></div>
-                                <div className="flex justify-between p-2 bg-emerald-900/20 rounded border border-emerald-900/30 text-emerald-400 font-bold"><span>{state.jars[JarType.LIB].name} ({state.jars[JarType.LIB].percentage}%)</span><span>${amount ? (parseFloat(amount)*(state.jars[JarType.LIB].percentage/100)).toFixed(2) : 0}</span></div>
-                                <div className="flex justify-between p-2 bg-cyan-900/20 rounded border border-cyan-900/30 text-cyan-400"><span>{state.jars[JarType.ALP].name} ({state.jars[JarType.ALP].percentage}%)</span><span>${amount ? (parseFloat(amount)*(state.jars[JarType.ALP].percentage/100)).toFixed(2) : 0}</span></div>
-                                <div className="flex justify-between p-2 bg-violet-900/20 rounded border border-violet-900/30 text-violet-400"><span>{state.jars[JarType.EDU].name} ({state.jars[JarType.EDU].percentage}%)</span><span>${amount ? (parseFloat(amount)*(state.jars[JarType.EDU].percentage/100)).toFixed(2) : 0}</span></div>
-                                <div className="flex justify-between p-2 bg-pink-900/20 rounded border border-pink-900/30 text-pink-400"><span>{state.jars[JarType.JUE].name} ({state.jars[JarType.JUE].percentage}%)</span><span>${amount ? (parseFloat(amount)*(state.jars[JarType.JUE].percentage/100)).toFixed(2) : 0}</span></div>
-                                <div className="flex justify-between p-2 bg-amber-900/20 rounded border border-amber-900/30 text-amber-400"><span>{state.jars[JarType.DAR].name} ({state.jars[JarType.DAR].percentage}%)</span><span>${amount ? (parseFloat(amount)*(state.jars[JarType.DAR].percentage/100)).toFixed(2) : 0}</span></div>
+                                <div className="flex justify-between p-2 bg-blue-900/20 rounded border border-blue-900/30 text-blue-300"><span>{currentUserData.jars[JarType.NEC].name} ({currentUserData.jars[JarType.NEC].percentage}%)</span><span>${amount ? (parseFloat(amount)*(currentUserData.jars[JarType.NEC].percentage/100)).toFixed(2) : 0}</span></div>
+                                <div className="flex justify-between p-2 bg-emerald-900/20 rounded border border-emerald-900/30 text-emerald-400 font-bold"><span>{currentUserData.jars[JarType.LIB].name} ({currentUserData.jars[JarType.LIB].percentage}%)</span><span>${amount ? (parseFloat(amount)*(currentUserData.jars[JarType.LIB].percentage/100)).toFixed(2) : 0}</span></div>
+                                <div className="flex justify-between p-2 bg-cyan-900/20 rounded border border-cyan-900/30 text-cyan-400"><span>{currentUserData.jars[JarType.ALP].name} ({currentUserData.jars[JarType.ALP].percentage}%)</span><span>${amount ? (parseFloat(amount)*(currentUserData.jars[JarType.ALP].percentage/100)).toFixed(2) : 0}</span></div>
+                                <div className="flex justify-between p-2 bg-violet-900/20 rounded border border-violet-900/30 text-violet-400"><span>{currentUserData.jars[JarType.EDU].name} ({currentUserData.jars[JarType.EDU].percentage}%)</span><span>${amount ? (parseFloat(amount)*(currentUserData.jars[JarType.EDU].percentage/100)).toFixed(2) : 0}</span></div>
+                                <div className="flex justify-between p-2 bg-pink-900/20 rounded border border-pink-900/30 text-pink-400"><span>{currentUserData.jars[JarType.JUE].name} ({currentUserData.jars[JarType.JUE].percentage}%)</span><span>${amount ? (parseFloat(amount)*(currentUserData.jars[JarType.JUE].percentage/100)).toFixed(2) : 0}</span></div>
+                                <div className="flex justify-between p-2 bg-amber-900/20 rounded border border-amber-900/30 text-amber-400"><span>{currentUserData.jars[JarType.DAR].name} ({currentUserData.jars[JarType.DAR].percentage}%)</span><span>${amount ? (parseFloat(amount)*(currentUserData.jars[JarType.DAR].percentage/100)).toFixed(2) : 0}</span></div>
                             </div>
                         ) : (
                             <div className="space-y-3 animate-in fade-in">
@@ -724,7 +858,7 @@ const App: React.FC = () => {
                                     <div className="col-span-3 text-center">Valor ($)</div>
                                     <div className="col-span-3 text-center">%</div>
                                 </div>
-                                {(Object.values(state.jars) as Jar[]).map((jar) => (
+                                {(Object.values(currentUserData.jars) as Jar[]).map((jar) => (
                                     <div key={jar.id} className="grid grid-cols-12 gap-2 items-center">
                                         <div className="col-span-6 flex items-center gap-2">
                                             <div className={`w-1.5 h-6 rounded-full ${jar.color}`}></div>
@@ -767,7 +901,7 @@ const App: React.FC = () => {
                        <div className="bg-slate-900/50 p-6 rounded-2xl border border-slate-700/50">
                            <label className="block text-sm font-medium text-slate-400 mb-3">¿De qué Jarrón sale el dinero?</label>
                            <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                               {(Object.values(state.jars) as Jar[]).map((jar) => (
+                               {(Object.values(currentUserData.jars) as Jar[]).map((jar) => (
                                    <div 
                                     key={jar.id}
                                     onClick={() => setSelectedJar(jar.id)}
@@ -789,7 +923,7 @@ const App: React.FC = () => {
                             </div>
                            )}
 
-                           {state.jars[selectedJar].balance < convertToBase(parseFloat(amount || '0'), currency) && (
+                           {currentUserData.jars[selectedJar].balance < convertToBase(parseFloat(amount || '0'), currency) && (
                                <div className="mt-4 flex items-center gap-2 text-rose-400 text-sm bg-rose-900/20 p-3 rounded-lg border border-rose-900/50">
                                    <AlertCircle className="w-4 h-4" />
                                    <span>¡Cuidado! Este gasto excede el saldo del jarrón.</span>
@@ -813,14 +947,18 @@ const App: React.FC = () => {
         )}
       </main>
 
-      <AICoach state={state} />
+      {/* Since AI Coach depends on state.currentUser, we update it to use the new structure or pass relevant data. 
+          For now, we pass a composed object that matches the old interface expected by AICoach or update AICoach props.
+          Ideally, update AICoach to accept current user data.
+       */}
+      <AICoach state={{ ...state, currentUser: currentUserProfile, ...currentUserData }} />
 
       {/* MODALS */}
       {showAssetModal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
               <div className="bg-slate-800 rounded-2xl p-6 w-full max-w-md border border-slate-700 shadow-2xl animate-in zoom-in-95">
                   <div className="flex justify-between items-center mb-6">
-                      <h3 className="text-xl font-bold text-white">Nuevo Activo</h3>
+                      <h3 className="text-xl font-bold text-white">Nuevo Activo ({currentUserProfile.name})</h3>
                       <button onClick={() => setShowAssetModal(false)}><X className="text-slate-400 hover:text-white" /></button>
                   </div>
                   <div className="space-y-4">
@@ -857,7 +995,7 @@ const App: React.FC = () => {
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
               <div className="bg-slate-800 rounded-2xl p-6 w-full max-w-md border border-slate-700 shadow-2xl animate-in zoom-in-95">
                   <div className="flex justify-between items-center mb-6">
-                      <h3 className="text-xl font-bold text-white">Nuevo Pasivo</h3>
+                      <h3 className="text-xl font-bold text-white">Nuevo Pasivo ({currentUserProfile.name})</h3>
                       <button onClick={() => setShowLiabilityModal(false)}><X className="text-slate-400 hover:text-white" /></button>
                   </div>
                   <div className="space-y-4">
@@ -891,7 +1029,7 @@ const App: React.FC = () => {
       )}
 
       <JarConfigModal 
-        jars={state.jars}
+        jars={displayedData.jars}
         isOpen={showJarConfigModal}
         onClose={() => setShowJarConfigModal(false)}
         onSave={handleSaveJarConfig}
@@ -899,7 +1037,7 @@ const App: React.FC = () => {
       
       <JarDetailModal 
         jar={selectedJarDetail}
-        transactions={state.transactions}
+        transactions={displayedData.transactions}
         isOpen={!!selectedJarDetail}
         onClose={() => setSelectedJarDetail(null)}
       />

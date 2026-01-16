@@ -1,7 +1,12 @@
 import { GoogleGenAI } from "@google/genai";
-import { FinancialState, JarType } from '../types';
+import { FinancialState, JarType, UserFinancials, FamilyMember } from '../types';
 
 const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+
+// Type for the data required by the AI service
+export interface FinancialContext extends UserFinancials {
+    currentUser: FamilyMember;
+}
 
 const SYSTEM_INSTRUCTION = `
 Actúa como un experto financiero de clase mundial que combina las filosofías de dos libros legendarios: "Los Secretos de la Mente Millonaria" (T. Harv Eker) y "Padre Rico, Padre Pobre" (Robert Kiyosaki).
@@ -15,16 +20,16 @@ Tus principios clave son:
 Analiza los datos financieros proporcionados y da consejos breves, directos y accionables. Usa formato Markdown.
 `;
 
-export const getFinancialAdvice = async (state: FinancialState, question?: string): Promise<string> => {
+export const getFinancialAdvice = async (data: FinancialContext, question?: string): Promise<string> => {
   try {
     const context = `
       Estado Financiero Actual:
-      - Usuario: ${state.currentUser.name}
-      - Total en Jarra Libertad Financiera: $${state.jars[JarType.LIB].balance}
-      - Total Activos: $${state.assets.reduce((acc, curr) => acc + curr.value, 0)}
-      - Flujo de Caja Mensual (Pasivo): $${state.assets.reduce((acc, curr) => acc + curr.monthlyCashflow, 0)}
-      - Total Pasivos (Deuda): $${state.liabilities.reduce((acc, curr) => acc + curr.totalOwed, 0)}
-      - Pago Mensual de Deuda: $${state.liabilities.reduce((acc, curr) => acc + curr.monthlyPayment, 0)}
+      - Usuario: ${data.currentUser.name}
+      - Total en Jarra Libertad Financiera: $${data.jars[JarType.LIB].balance}
+      - Total Activos: $${data.assets.reduce((acc, curr) => acc + curr.value, 0)}
+      - Flujo de Caja Mensual (Pasivo): $${data.assets.reduce((acc, curr) => acc + curr.monthlyCashflow, 0)}
+      - Total Pasivos (Deuda): $${data.liabilities.reduce((acc, curr) => acc + curr.totalOwed, 0)}
+      - Pago Mensual de Deuda: $${data.liabilities.reduce((acc, curr) => acc + curr.monthlyPayment, 0)}
     `;
 
     const prompt = question 

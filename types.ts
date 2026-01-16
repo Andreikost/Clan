@@ -21,20 +21,22 @@ export interface Jar {
 
 export interface Asset {
   id: string;
+  ownerId?: string; // New: Who owns this asset
   name: string;
   value: number;
-  currency: CurrencyCode; // New
+  currency: CurrencyCode;
   monthlyCashflow: number; // Ingreso pasivo
   type: 'RealEstate' | 'Business' | 'Stock' | 'Paper' | 'Commodities';
 }
 
 export interface Liability {
   id: string;
+  ownerId?: string; // New: Who owns this debt
   name: string;
   totalOwed: number;
-  currency: CurrencyCode; // New
+  currency: CurrencyCode;
   monthlyPayment: number;
-  interestRate: number; // New: Tasa de interés anual para estrategia de deuda
+  interestRate: number; 
   type: 'Mortgage' | 'Loan' | 'CreditCard' | 'Car';
 }
 
@@ -43,9 +45,9 @@ export interface Transaction {
   date: string;
   description: string;
   amount: number;
-  currency: CurrencyCode; // New
+  currency: CurrencyCode;
   type: 'INCOME' | 'EXPENSE';
-  jarId?: JarType; // If expense, which jar it came from. If income, usually distributed.
+  jarId?: JarType; 
   isPassive: boolean;
 }
 
@@ -63,14 +65,20 @@ export interface MonthlyStats {
   netWorth: number;
 }
 
-export interface FinancialState {
-  baseCurrency: CurrencyCode; // New: Moneda principal para reportes
-  exchangeRates: Record<string, number>; // New: ej: { USD: 4000, EUR: 4300 } (Base es COP)
+// Data specific to a single user
+export interface UserFinancials {
   jars: Record<JarType, Jar>;
   assets: Asset[];
   liabilities: Liability[];
   transactions: Transaction[];
-  currentUser: FamilyMember;
   monthlyStats: MonthlyStats[];
+}
+
+// Global Application State
+export interface FinancialState {
+  baseCurrency: CurrencyCode;
+  exchangeRates: Record<string, number>;
+  users: FamilyMember[]; // List of available users
+  userData: Record<string, UserFinancials>; // Map userId -> Financial Data
   savedDescriptions: string[]; 
 }
